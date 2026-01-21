@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Odin build",
+            "type": "shell",
+            "command": "odin",
+            "args": [
+                "build",
+                "src",
+                "-out:build/game.bin",
+                "-debug",
+                "-vet"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
