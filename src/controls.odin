@@ -2,10 +2,19 @@ package main
 
 import rl "vendor:raylib"
 WaveType :: enum{
-    
+    FLAT,
     DIAGONAL,
     CIRCULAR,
     NOISE,
+    SPIRAL,
+    INTERFERANCE,
+    BOUNCE,
+    GLITCH,
+    SQUARE,
+    SAWTOOTH,
+    TRIANGLE,
+    STEPPED,
+    BINARY_NOISE,
 }
 
 ColourPair :: struct{
@@ -24,7 +33,7 @@ WaveControls::struct{
 
 init_controls :: proc() -> WaveControls {
     return WaveControls {
-        active_type = .DIAGONAL,
+        active_type = .FLAT,
         speed = 2.0,
         frequency = 0.2,
         amplitude = 10.0,
@@ -51,7 +60,12 @@ update_wave_controls :: proc(controls: ^WaveControls, dt: f32){
     if rl.IsKeyDown(.UP) do controls.amplitude += 10.0 * dt
     if rl.IsKeyDown(.DOWN) do controls.amplitude -= 10.0 * dt
 
-    if rl.IsKeyPressed(.RIGHT) do controls.steps += 1.0
-    if rl.IsKeyPressed(.LEFT) do controls.steps -= 1.0
-
+    if rl.IsKeyPressed(.RIGHT){
+        controls.steps += 1.0
+        if controls.steps == 0.0 do controls.steps = 1.0
+    }
+    if rl.IsKeyPressed(.LEFT){
+        controls.steps -= 1.0
+        if controls.steps == 0.0 do controls.steps = -1.0
+    }
 }

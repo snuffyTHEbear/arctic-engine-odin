@@ -1,16 +1,15 @@
 package main
 
-import "core:math/rand"
+//import "core:math/rand"
 //import "core:math/linalg"
 import "core:fmt"
 import "core:math"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-//Constants for performance
 SCREEN_WIDTH :: 1920
 SCREEN_HEIGHT :: 1080
-TARGET_FPS :: 144 // High refresh rate can be altered for displays that support it
+TARGET_FPS :: 144
 MAP_SIZE_X :: 30
 MAP_SIZE_Y :: 30
 MAP_SIZE :: MAP_SIZE_X * MAP_SIZE_Y
@@ -83,13 +82,13 @@ main :: proc()
     world := init_map(MAP_SIZE_X, MAP_SIZE_Y)
     defer destroy_map(&world)
 
-    for y in 0..<world.height{
-        for x in 0..<world.width{
-            idx := get_tile_index(&world, x, y)
-            world.tile_heights[idx] = rand.float32() * 100.0
-            world.tile_ids[idx] = .WHITE
-        }
-    }
+    // for y in 0..<world.height{
+    //     for x in 0..<world.width{
+    //         idx := get_tile_index(&world, x, y)
+    //         world.tile_heights[idx] = rand.float32() * 100.0
+    //         world.tile_ids[idx] = .WHITE
+    //     }
+    // }
     fmt.println("Engine started, Map Initialized")
 
     for !rl.WindowShouldClose()
@@ -99,8 +98,7 @@ main :: proc()
         update_camera(&rts_cam)
         update_wave_controls(&controls, dt)
 
-        cx := f32(world.width) / 2.0
-        cy := f32(world.height) / 2.0
+        
 
         mouse_screen_pos := rl.GetMousePosition()
         mouse_world := rl.GetScreenToWorld2D(mouse_screen_pos, rts_cam.rl_camera)
@@ -117,6 +115,12 @@ main :: proc()
 
         for y in 0..<world.height{
             for x in 0..<world.width{
+                cx := f32(world.width) / 2.0
+                cy := f32(world.height) / 2.0
+                dx := f32(x) - cx
+                dy := f32(y) - cy
+                dist := math.sqrt_f32(dx * dx + dy * dy)
+
                 idx := get_tile_index(&world, x, y)
 
                 offset := f32(0.0)
@@ -124,16 +128,49 @@ main :: proc()
                 switch controls.active_type{
                     // case .NONE:
                     //     offset = 0.0
+                    case .FLAT:
+                        offset = controls.amplitude
                     case .DIAGONAL:
-                        dist := f32 (x + y)
+                        dist = f32 (x + y)
                         offset = math.sin_f32(time * controls.speed + dist * controls.frequency)
                     case .CIRCULAR:
-                        dx := f32(x) - cx
-                        dy := f32(y) - cy
-                        dist := math.sqrt_f32(dx * dx + dy * dy)
+                        
                         offset = math.sin_f32(time * controls.speed - dist * controls.frequency)
                     case .NOISE:
                         offset = math.sin_f32(time * 5.0 + f32(idx))
+                    case .SPIRAL:
+                        angle := math.atan2_f32(dy, dx)
+                        offset = math.sin_f32(time * controls.speed - dist * controls.frequency + angle * 5.0)
+                    case .INTERFERANCE:
+                        w1 := math.sin_f32(time * controls.speed + f32(x) * controls.frequency)
+                        w2 := math.sin_f32(time * controls.speed + f32(y) * controls.frequency)
+                        offset = (w1 + w2) * 5.0
+                    case .BOUNCE:
+                        raw_sine := math.sin_f32(time * controls.speed + dist * controls.frequency)
+                        offset = math.abs(raw_sine)
+                    case .GLITCH:
+                        val := math.tan_f32(time * 5.0 + dist * 0.1)
+                        offset = rl.Clamp(val, -1.0, 1.0)
+                    case .SQUARE:
+                        raw_val := math.sin_f32(time * controls.speed + dist * controls.frequency)
+                        if raw_val > 0{
+                            offset = 1.0
+                        } else {
+                            offset = -1.0
+                        }
+                    case .SAWTOOTH:
+                        input_val := (time * controls.speed + dist * controls.frequency)
+                        offset = math.mod_f32(input_val, 1.0) * 2.0 - 1.0
+                    case .TRIANGLE:
+                        input_val := (time * controls.speed + dist * controls.frequency) * 0.5
+                        offset = 2.0 * math.abs(2.0 * (input_val - math.floor_f32(input_val + 0.5))) - 1.0
+                    case .STEPPED:
+                        raw_sine := math.sin_f32(time * controls.speed + dist * controls.frequency)
+                        offset = math.floor_f32(raw_sine * controls.steps) / controls.steps
+                    case .BINARY_NOISE:
+                        t_int := int(time * 10.0)
+                        val := (x * y * t_int) & 1
+                        offset = f32(val * 2 - 1)
                 }
                 world.tile_heights[idx] = offset * controls.amplitude//BASE_HEIGHT + (offset * WAVE_AMP)
             }
@@ -225,7 +262,7 @@ main :: proc()
         // }
 // Drawing
         rl.BeginDrawing()
-        rl.ClearBackground(rl.BLACK)
+        rl.ClearBackground(rl.BROWN)
         //rlgl.ClearColor(1,1,1,1)
         //rlgl.Clear(rlgl.COLOR_BUFFER_BIT | rlgl.DEPTH_BUFFER_BIT)
         rlgl.ClearScreenBuffers()
@@ -265,8 +302,14 @@ main :: proc()
 
                     pos := iso_to_screen(x, y)
 
+                    //wobble_x := math.sin_f32(time * 5.0 + f32(y) * 0.5) * 4.0
+                    //wobble_y := math.sin_f32(time * 5.0 + f32(x) * 0.5) * 4.0
+                    
                     visual_pos := rl.Vector2{pos.x - TILE_OFFSET, pos.y - TILE_OFFSET - h}
-
+                    // visual_pos := rl.Vector2{
+                    //     pos.x - TILE_OFFSET + wobble_x,
+                    //     pos.y - TILE_OFFSET - h + wobble_y,
+                    // }
                     //source_rect := rl.Rectangle{0, 0, TILE_SIZE, TILE_SIZE}
                     //color := rl.WHITE
                     
@@ -291,18 +334,11 @@ main :: proc()
                         draw_wall(atlas.texture, rect, pos, h, e_h, WALL_TYPES.EAST_FACE, wall_colour)
                     }
 
-                    if h > 0.0
-                    {
-                        // rlgl.DisableDepthMask()
-                        // shadow_visual_pos := rl.Vector2{pos.x - TILE_OFFSET, pos.y - TILE_OFFSET}
-                        // draw_tile(atlas.texture, rect, shadow_visual_pos, pos.y - 1.0, rl.Color{0,0,0,60})
-                        // rlgl.EnableDepthMask()
-                    }
                     draw_tile(atlas.texture, rect, visual_pos, pos.y, tile_colour)                    
                 }
             }
             //When bob moves lift him?
-            //Draw Bob
+            
             bob_sort_y := bob.visual_pos.y + bob.current_height// + 1.0
             bob_sort_y += 1.0
             bob_rect := atlas.sprites[TileType.BOB]
@@ -329,8 +365,8 @@ main :: proc()
             rlgl.DisableDepthTest()
         rl.EndMode2D()
 
-        rl.DrawRectangle(5, 5,      450,    250, rl.Fade(rl.BLACK, 0.7))
-        rl.DrawRectangleLines(5,5,  450,    250,rl.BEIGE)
+        // rl.DrawRectangle(5, 5,      450,    250, rl.Fade(rl.BLACK, 0.7))
+        // rl.DrawRectangleLines(5,5,  450,    250,rl.BEIGE)
         start_y :: 15
         step_y :: 25
 
