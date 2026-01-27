@@ -11,8 +11,8 @@ import rlgl "vendor:raylib/rlgl"
 SCREEN_WIDTH :: 1920
 SCREEN_HEIGHT :: 1080
 TARGET_FPS :: 144 // High refresh rate can be altered for displays that support it
-MAP_SIZE_X :: 50
-MAP_SIZE_Y :: 50
+MAP_SIZE_X :: 30
+MAP_SIZE_Y :: 30
 MAP_SIZE :: MAP_SIZE_X * MAP_SIZE_Y
 
 TILE_SIZE :: 64
@@ -122,8 +122,8 @@ main :: proc()
                 offset := f32(0.0)
 
                 switch controls.active_type{
-                    case .NONE:
-                        offset = 0.0
+                    // case .NONE:
+                    //     offset = 0.0
                     case .DIAGONAL:
                         dist := f32 (x + y)
                         offset = math.sin_f32(time * controls.speed + dist * controls.frequency)
@@ -225,11 +225,12 @@ main :: proc()
         // }
 // Drawing
         rl.BeginDrawing()
-        rl.ClearBackground(rl.RAYWHITE)
+        rl.ClearBackground(rl.BLACK)
         //rlgl.ClearColor(1,1,1,1)
         //rlgl.Clear(rlgl.COLOR_BUFFER_BIT | rlgl.DEPTH_BUFFER_BIT)
         rlgl.ClearScreenBuffers()
         //rl.rlClearScreenBuffers()
+        current_theme := THEMES[controls.palette_idx]
 
         rl.BeginMode2D(rts_cam.rl_camera)
             rlgl.EnableDepthTest()
@@ -254,10 +255,10 @@ main :: proc()
                     t = rl.Clamp(t, 0.0, 1.0)
                     t = math.floor_f32(t * controls.steps) / controls.steps
 
-                    COL_LOW :: PASTEL.TeaGreen//rl.Color{20, 40, 90, 255}
-                    COL_HIGH :: PASTEL.Orange//rl.Color{200, 240, 255, 255}
+                    // COL_LOW :: PASTEL.TeaGreen//rl.Color{20, 40, 90, 255}
+                    // COL_HIGH :: PASTEL.Orange//rl.Color{200, 240, 255, 255}
 
-                    tile_colour := rl.ColorLerp(COL_LOW, COL_HIGH, t)
+                    tile_colour := rl.ColorLerp(current_theme.low, current_theme.high, t)
                     
                     type := world.tile_ids[idx]
                     rect := atlas.sprites[type]
@@ -328,8 +329,8 @@ main :: proc()
             rlgl.DisableDepthTest()
         rl.EndMode2D()
 
-        rl.DrawRectangle(5, 5,      450,    200, rl.Fade(rl.BLACK, 0.7))
-        rl.DrawRectangleLines(5,5,  450,    200,rl.BEIGE)
+        rl.DrawRectangle(5, 5,      450,    250, rl.Fade(rl.BLACK, 0.7))
+        rl.DrawRectangleLines(5,5,  450,    250,rl.BEIGE)
         start_y :: 15
         step_y :: 25
 
@@ -341,6 +342,7 @@ main :: proc()
         rl.DrawText(rl.TextFormat("Right/Middle Click to Pan, Wheel to zoom."),             15, start_y + step_y * 5, 20, rl.WHITE)
         rl.DrawText(rl.TextFormat("Tiles Drawn: %i",    (max_x - min_x) * (max_y - min_y)), 15, start_y + step_y * 6, 20, rl.WHITE)
         rl.DrawText(rl.TextFormat("Steps (Left/Right): %.2f", controls.steps), 15, start_y + step_y * 7, 20, rl.WHITE)
+        rl.DrawText(rl.TextFormat("Theme (C): %v", current_theme.name), 15, start_y + step_y * 8, 20, rl.WHITE)
         rl.DrawFPS(SCREEN_WIDTH - 100, 10)
 
         rl.EndDrawing()

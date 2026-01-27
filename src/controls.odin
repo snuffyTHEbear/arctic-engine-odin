@@ -2,7 +2,7 @@ package main
 
 import rl "vendor:raylib"
 WaveType :: enum{
-    NONE,
+    
     DIAGONAL,
     CIRCULAR,
     NOISE,
@@ -19,6 +19,7 @@ WaveControls::struct{
     frequency: f32,
     amplitude: f32,
     steps: f32,
+    palette_idx: int,
 }
 
 init_controls :: proc() -> WaveControls {
@@ -27,7 +28,8 @@ init_controls :: proc() -> WaveControls {
         speed = 2.0,
         frequency = 0.2,
         amplitude = 10.0,
-        steps = 5.0,
+        steps = 15.0,
+        palette_idx = 0,
     }
 }
 
@@ -36,8 +38,8 @@ update_wave_controls :: proc(controls: ^WaveControls, dt: f32){
         controls.active_type = WaveType((int(controls.active_type) + 1) % len(WaveType))
     }
 
-    if rl.IsKeyDown(.C){
-        
+    if rl.IsKeyPressed(.C){
+        controls.palette_idx = (controls.palette_idx + 1) % len(THEMES)
     }
 
     if rl.IsKeyDown(.W) do controls.speed += 5.0 * dt
