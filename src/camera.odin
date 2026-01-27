@@ -63,11 +63,11 @@ update_camera :: proc(c: ^RTSCamera){
         c.rl_camera.target += delta
     }
 
-    pan_speed := 500.0 * dt / c.rl_camera.zoom
+    //pan_speed := 500.0 * dt / c.rl_camera.zoom
 
-    if rl.IsKeyDown(.W) || rl.IsKeyDown(.UP) do c.rl_camera.target.y -= pan_speed
-    if rl.IsKeyDown(.S) || rl.IsKeyDown(.DOWN) do c.rl_camera.target.y += pan_speed
-    if rl.IsKeyDown(.A) || rl.IsKeyDown(.LEFT) do c.rl_camera.target.x -= pan_speed
-    if rl.IsKeyDown(.D) || rl.IsKeyDown(.RIGHT) do c.rl_camera.target.x += pan_speed
+    // if rl.IsKeyDown(.W) || rl.IsKeyDown(.UP) do c.rl_camera.target.y -= pan_speed
+    // if rl.IsKeyDown(.S) || rl.IsKeyDown(.DOWN) do c.rl_camera.target.y += pan_speed
+    // if rl.IsKeyDown(.A) || rl.IsKeyDown(.LEFT) do c.rl_camera.target.x -= pan_speed
+    // if rl.IsKeyDown(.D) || rl.IsKeyDown(.RIGHT) do c.rl_camera.target.x += pan_speed
 }
 

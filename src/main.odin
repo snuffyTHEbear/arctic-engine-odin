@@ -1,17 +1,18 @@
 package main
 
 import "core:math/rand"
-import "core:math/linalg"
+//import "core:math/linalg"
 import "core:fmt"
+import "core:math"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
 //Constants for performance
-SCREEN_WIDTH :: 1280
-SCREEN_HEIGHT :: 720
+SCREEN_WIDTH :: 1920
+SCREEN_HEIGHT :: 1080
 TARGET_FPS :: 144 // High refresh rate can be altered for displays that support it
-MAP_SIZE_X :: 30
-MAP_SIZE_Y :: 30
+MAP_SIZE_X :: 50
+MAP_SIZE_Y :: 50
 MAP_SIZE :: MAP_SIZE_X * MAP_SIZE_Y
 
 TILE_SIZE :: 64
@@ -40,6 +41,7 @@ main :: proc()
 {
     
     rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Arctic-Engine")
+    
     rl.SetTargetFPS(TARGET_FPS)
 
     defer rl.CloseWindow()
@@ -54,16 +56,18 @@ main :: proc()
 
     start_pos := iso_to_screen(0,0)
 
+    controls := init_controls()
+
     bob := Unit{
         grid_pos = {1, 1},
         visual_pos = {start_pos.x, start_pos.y},
     }
 
-    hovered_block := BlockIndex{
-        curr_idx = -1,
-        prev_idx = 0,
-        next_idx = 0,
-    }
+    // hovered_block := BlockIndex{
+    //     curr_idx = -1,
+    //     prev_idx = 0,
+    //     next_idx = 0,
+    // }
 
     map_height_loc := rl.GetShaderLocation(shader, "mapHeight")
     if map_height_loc == -1
@@ -86,60 +90,90 @@ main :: proc()
             world.tile_ids[idx] = .WHITE
         }
     }
-    fmt.println("Engine started Map Initialized")
+    fmt.println("Engine started, Map Initialized")
 
     for !rl.WindowShouldClose()
     {
         dt := rl.GetFrameTime()
+        time := f32(rl.GetTime())
         update_camera(&rts_cam)
+        update_wave_controls(&controls, dt)
+
+        cx := f32(world.width) / 2.0
+        cy := f32(world.height) / 2.0
 
         mouse_screen_pos := rl.GetMousePosition()
         mouse_world := rl.GetScreenToWorld2D(mouse_screen_pos, rts_cam.rl_camera)
         hover_x, hover_y := screen_to_iso(mouse_world)
 
-        if hover_x >= 0 && hover_x < world.width && hover_y >= 0 && hover_y < world.height
-        {
-            idx := get_tile_index(&world, hover_x, hover_y)    
-            if hovered_block.curr_idx != idx{
-                hovered_block.prev_idx = hovered_block.curr_idx
-                hovered_block.curr_idx = idx
-            } 
-        }
-// Input
-        if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonPressed(.RIGHT)
-        {
-            gx, gy := hover_x, hover_y
-            if gx >= 0 && gx < world.width && gy >= 0 && gy < world.height
-            {
-                idx := get_tile_index(&world, gx, gy)
-                fmt.println("Clicked Tile: ", gx, ", ", gy, " Index: ", idx)
-                
-                if rl.IsMouseButtonPressed(.LEFT)
-                {
-                    //Add a height cap for when it reaches e.g. 100 it resets to 0
-                    world.tile_heights[idx] += 10.0
-                    if world.tile_heights[idx] > 100.0
-                    {
-                        world.tile_heights[idx] = 0.0
-                    }
-                }
-                else if rl.IsMouseButtonPressed(.RIGHT)
-                {
-                    if len(bob.path) > 0 {
-                        delete(bob.path)
-                    }
-                    
-                    target := Point{gx, gy}
-                    bob.path = find_path(&pathfinder, &world, bob.grid_pos, target)
+        // if hover_x >= 0 && hover_x < world.width && hover_y >= 0 && hover_y < world.height
+        // {
+        //     idx := get_tile_index(&world, hover_x, hover_y)    
+        //     if hovered_block.curr_idx != idx{
+        //         hovered_block.prev_idx = hovered_block.curr_idx
+        //         hovered_block.curr_idx = idx
+        //     } 
+        // }
 
-                    if bob.path == nil{
-                        fmt.println("No path found!")
-                    } else {
-                        fmt.println("Path found with ", len(bob.path), " nodes.")
-                    }
+        for y in 0..<world.height{
+            for x in 0..<world.width{
+                idx := get_tile_index(&world, x, y)
+
+                offset := f32(0.0)
+
+                switch controls.active_type{
+                    case .NONE:
+                        offset = 0.0
+                    case .DIAGONAL:
+                        dist := f32 (x + y)
+                        offset = math.sin_f32(time * controls.speed + dist * controls.frequency)
+                    case .CIRCULAR:
+                        dx := f32(x) - cx
+                        dy := f32(y) - cy
+                        dist := math.sqrt_f32(dx * dx + dy * dy)
+                        offset = math.sin_f32(time * controls.speed - dist * controls.frequency)
+                    case .NOISE:
+                        offset = math.sin_f32(time * 5.0 + f32(idx))
                 }
+                world.tile_heights[idx] = offset * controls.amplitude//BASE_HEIGHT + (offset * WAVE_AMP)
             }
         }
+
+// Input
+        // if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonPressed(.RIGHT)
+        // {
+        //     gx, gy := hover_x, hover_y
+        //     if gx >= 0 && gx < world.width && gy >= 0 && gy < world.height
+        //     {
+        //         idx := get_tile_index(&world, gx, gy)
+        //         fmt.println("Clicked Tile: ", gx, ", ", gy, " Index: ", idx)
+                
+        //         if rl.IsMouseButtonPressed(.LEFT)
+        //         {
+        //             //Add a height cap for when it reaches e.g. 100 it resets to 0
+        //             world.tile_heights[idx] += 10.0
+        //             if world.tile_heights[idx] > 100.0
+        //             {
+        //                 world.tile_heights[idx] = 0.0
+        //             }
+        //         }
+        //         else if rl.IsMouseButtonPressed(.RIGHT)
+        //         {
+        //             if len(bob.path) > 0 {
+        //                 delete(bob.path)
+        //             }
+                    
+        //             target := Point{gx, gy}
+        //             bob.path = find_path(&pathfinder, &world, bob.grid_pos, target)
+
+        //             if bob.path == nil{
+        //                 fmt.println("No path found!")
+        //             } else {
+        //                 fmt.println("Path found with ", len(bob.path), " nodes.")
+        //             }
+        //         }
+        //     }
+        // }
 
         if rl.IsKeyPressed(.F5)
         {
@@ -163,32 +197,32 @@ main :: proc()
             }
         }
 // Movement
-        if len(bob.path) > 0{
-            next_step := bob.path[0]
+        // if len(bob.path) > 0{
+        //     next_step := bob.path[0]
 
-            if next_step == bob.grid_pos{
-                ordered_remove(&bob.path, 0)
-            }
-            else
-            {
-                target_world := iso_to_screen(next_step.x, next_step.y)
-                next_idx := get_tile_index(&world, next_step.x, next_step.y)
-                next_height := world.tile_heights[next_idx]
-                target_vis := rl.Vector2{target_world.x, target_world.y - next_height}
+        //     if next_step == bob.grid_pos{
+        //         ordered_remove(&bob.path, 0)
+        //     }
+        //     else
+        //     {
+        //         target_world := iso_to_screen(next_step.x, next_step.y)
+        //         next_idx := get_tile_index(&world, next_step.x, next_step.y)
+        //         next_height := world.tile_heights[next_idx]
+        //         target_vis := rl.Vector2{target_world.x, target_world.y - next_height}
 
-                dist := rl.Vector2Distance(bob.visual_pos, target_vis)
-                //move_speed := 200.0 // Units per second
-                if dist < 2.0{
-                    bob.grid_pos = next_step // snap
-                    bob.current_height = next_height
-                }
-                else
-                {
-                    bob.visual_pos = linalg.lerp(bob.visual_pos, target_vis, 30.0 * dt)
-                    bob.current_height = linalg.lerp(bob.current_height, next_height, 30.0 * dt)
-                }
-            }
-        }
+        //         dist := rl.Vector2Distance(bob.visual_pos, target_vis)
+        //         //move_speed := 200.0 // Units per second
+        //         if dist < 2.0{
+        //             bob.grid_pos = next_step // snap
+        //             bob.current_height = next_height
+        //         }
+        //         else
+        //         {
+        //             bob.visual_pos = linalg.lerp(bob.visual_pos, target_vis, 30.0 * dt)
+        //             bob.current_height = linalg.lerp(bob.current_height, next_height, 30.0 * dt)
+        //         }
+        //     }
+        // }
 // Drawing
         rl.BeginDrawing()
         rl.ClearBackground(rl.RAYWHITE)
@@ -208,9 +242,23 @@ main :: proc()
                 for x:= max_x; x >= min_x; x -= 1
                 {
                     idx := get_tile_index(&world, x, y)
-                    hover := hovered_block.curr_idx == idx
                     h   := world.tile_heights[idx]
 
+                    min_h := -controls.amplitude
+                    max_h := controls.amplitude
+                    range := max_h - min_h
+
+                    if range < 1.0 do range = 1.0
+
+                    t := (h - min_h) / range
+                    t = rl.Clamp(t, 0.0, 1.0)
+                    t = math.floor_f32(t * controls.steps) / controls.steps
+
+                    COL_LOW :: PASTEL.TeaGreen//rl.Color{20, 40, 90, 255}
+                    COL_HIGH :: PASTEL.Orange//rl.Color{200, 240, 255, 255}
+
+                    tile_colour := rl.ColorLerp(COL_LOW, COL_HIGH, t)
+                    
                     type := world.tile_ids[idx]
                     rect := atlas.sprites[type]
 
@@ -219,10 +267,7 @@ main :: proc()
                     visual_pos := rl.Vector2{pos.x - TILE_OFFSET, pos.y - TILE_OFFSET - h}
 
                     //source_rect := rl.Rectangle{0, 0, TILE_SIZE, TILE_SIZE}
-                    color := rl.WHITE
-                    if hover{
-                        color = rl.YELLOW
-                    }
+                    //color := rl.WHITE
                     
 
                     s_idx := get_tile_index(&world, x, y+1)
@@ -231,7 +276,7 @@ main :: proc()
 
                     if h > s_h
                     {
-                        wall_colour := rl.Color{200, 200, 200, 255}
+                        wall_colour := rl.ColorBrightness(tile_colour, -0.2)//rl.Color{200, 200, 200, 255}
                         draw_wall(atlas.texture, rect, pos, h, s_h, WALL_TYPES.SOUTH_FACE, wall_colour)
                     }
 
@@ -241,7 +286,7 @@ main :: proc()
 
                     if h > e_h
                     {
-                        wall_colour := rl.Color{150, 150, 150, 255}
+                        wall_colour := rl.ColorBrightness(tile_colour, -0.4)//rl.Color{150, 150, 150, 255}
                         draw_wall(atlas.texture, rect, pos, h, e_h, WALL_TYPES.EAST_FACE, wall_colour)
                     }
 
@@ -252,7 +297,7 @@ main :: proc()
                         // draw_tile(atlas.texture, rect, shadow_visual_pos, pos.y - 1.0, rl.Color{0,0,0,60})
                         // rlgl.EnableDepthMask()
                     }
-                    draw_tile(atlas.texture, rect, visual_pos, pos.y, color)                    
+                    draw_tile(atlas.texture, rect, visual_pos, pos.y, tile_colour)                    
                 }
             }
             //When bob moves lift him?
@@ -283,10 +328,19 @@ main :: proc()
             rlgl.DisableDepthTest()
         rl.EndMode2D()
 
-        rl.DrawText(rl.TextFormat("Hover: %i, %i", i32(hover_x), i32(hover_y)), 10, 60, 20, rl.ORANGE)
-        rl.DrawText("Right/Middle Click to Pan, Wheel to zoom.", 10, 80, 20, rl.DARKPURPLE)
-        rl.DrawText(rl.TextFormat("Tiles Drawn: %i", (max_x - min_x) * (max_y - min_y)), 10, 100, 20, rl.YELLOW)
+        rl.DrawRectangle(5, 5,      450,    200, rl.Fade(rl.BLACK, 0.7))
+        rl.DrawRectangleLines(5,5,  450,    200,rl.BEIGE)
+        start_y :: 15
+        step_y :: 25
 
+        rl.DrawText(rl.TextFormat("MODE (Tab): %v",         controls.active_type),          15, start_y, 20, rl.GREEN)
+        rl.DrawText(rl.TextFormat("Speed (W/S): %.2f",      controls.speed),                15, start_y + step_y * 1, 20, rl.WHITE)
+        rl.DrawText(rl.TextFormat("Freq (A/D): %.2f",       controls.frequency),            15, start_y + step_y * 2, 20, rl.WHITE)
+        rl.DrawText(rl.TextFormat("Amp (Up/Dn): %.2f",      controls.amplitude),            15, start_y + step_y * 3, 20, rl.WHITE)
+        rl.DrawText(rl.TextFormat("Hover: %i, %i",          i32(hover_x), i32(hover_y)),    15, start_y + step_y * 4, 20, rl.WHITE)
+        rl.DrawText(rl.TextFormat("Right/Middle Click to Pan, Wheel to zoom."),             15, start_y + step_y * 5, 20, rl.WHITE)
+        rl.DrawText(rl.TextFormat("Tiles Drawn: %i",    (max_x - min_x) * (max_y - min_y)), 15, start_y + step_y * 6, 20, rl.WHITE)
+        rl.DrawText(rl.TextFormat("Steps (Left/Right): %.2f", controls.steps), 15, start_y + step_y * 7, 20, rl.WHITE)
         rl.DrawFPS(SCREEN_WIDTH - 100, 10)
 
         rl.EndDrawing()
