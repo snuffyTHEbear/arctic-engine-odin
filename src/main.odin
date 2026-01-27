@@ -10,8 +10,8 @@ import rlgl "vendor:raylib/rlgl"
 SCREEN_WIDTH :: 1280
 SCREEN_HEIGHT :: 720
 TARGET_FPS :: 144 // High refresh rate can be altered for displays that support it
-MAP_SIZE_X :: 50
-MAP_SIZE_Y :: 20
+MAP_SIZE_X :: 30
+MAP_SIZE_Y :: 30
 MAP_SIZE :: MAP_SIZE_X * MAP_SIZE_Y
 
 TILE_SIZE :: 64
@@ -19,6 +19,13 @@ TILE_OFFSET :: TILE_SIZE / 2
 
 SHADER_VS :: "./assets/shaders/iso_depth.vs"
 SHADER_FS :: "./assets/shaders/iso_depth.fs"
+
+BlockIndex :: struct
+{
+    curr_idx: int,
+    prev_idx: int,
+    next_idx: int,
+}
 
 Unit :: struct 
 {
@@ -52,6 +59,12 @@ main :: proc()
         visual_pos = {start_pos.x, start_pos.y},
     }
 
+    hovered_block := BlockIndex{
+        curr_idx = -1,
+        prev_idx = 0,
+        next_idx = 0,
+    }
+
     map_height_loc := rl.GetShaderLocation(shader, "mapHeight")
     if map_height_loc == -1
     {
@@ -83,6 +96,15 @@ main :: proc()
         mouse_screen_pos := rl.GetMousePosition()
         mouse_world := rl.GetScreenToWorld2D(mouse_screen_pos, rts_cam.rl_camera)
         hover_x, hover_y := screen_to_iso(mouse_world)
+
+        if hover_x >= 0 && hover_x < world.width && hover_y >= 0 && hover_y < world.height
+        {
+            idx := get_tile_index(&world, hover_x, hover_y)    
+            if hovered_block.curr_idx != idx{
+                hovered_block.prev_idx = hovered_block.curr_idx
+                hovered_block.curr_idx = idx
+            } 
+        }
 // Input
         if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonPressed(.RIGHT)
         {
@@ -116,6 +138,28 @@ main :: proc()
                         fmt.println("Path found with ", len(bob.path), " nodes.")
                     }
                 }
+            }
+        }
+
+        if rl.IsKeyPressed(.F5)
+        {
+            save_map(&world, "level_data.bin")
+        }
+
+        if rl.IsKeyPressed(.F6)
+        {
+            destroy_map(&world)
+            world = load_map("level_data.bin")
+
+            new_pixel_height := f32(world.height * 32) + 2000.0
+            rl.SetShaderValue(shader, map_height_loc, &new_pixel_height, .FLOAT)
+
+            if(bob.grid_pos.x >= world.width || bob.grid_pos.y >= world.height)
+            {
+                bob.grid_pos = Point{0,0}
+                bob.visual_pos = iso_to_screen(0,0)
+                bob.current_height = world.tile_heights[0]
+                clear(&bob.path)
             }
         }
 // Movement
@@ -164,6 +208,7 @@ main :: proc()
                 for x:= max_x; x >= min_x; x -= 1
                 {
                     idx := get_tile_index(&world, x, y)
+                    hover := hovered_block.curr_idx == idx
                     h   := world.tile_heights[idx]
 
                     type := world.tile_ids[idx]
@@ -174,7 +219,12 @@ main :: proc()
                     visual_pos := rl.Vector2{pos.x - TILE_OFFSET, pos.y - TILE_OFFSET - h}
 
                     //source_rect := rl.Rectangle{0, 0, TILE_SIZE, TILE_SIZE}
+                    color := rl.WHITE
+                    if hover{
+                        color = rl.YELLOW
+                    }
                     
+
                     s_idx := get_tile_index(&world, x, y+1)
                     s_h := f32(-10.0)
                     if s_idx != -1 do s_h = world.tile_heights[s_idx]
@@ -202,7 +252,7 @@ main :: proc()
                         // draw_tile(atlas.texture, rect, shadow_visual_pos, pos.y - 1.0, rl.Color{0,0,0,60})
                         // rlgl.EnableDepthMask()
                     }
-                    draw_tile(atlas.texture, rect, visual_pos, pos.y, rl.WHITE)                    
+                    draw_tile(atlas.texture, rect, visual_pos, pos.y, color)                    
                 }
             }
             //When bob moves lift him?
@@ -241,4 +291,5 @@ main :: proc()
 
         rl.EndDrawing()
     }
+    
 }
