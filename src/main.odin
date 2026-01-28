@@ -10,8 +10,8 @@ import rlgl "vendor:raylib/rlgl"
 SCREEN_WIDTH :: 1920
 SCREEN_HEIGHT :: 1080
 TARGET_FPS :: 144
-MAP_SIZE_X :: 30
-MAP_SIZE_Y :: 30
+MAP_SIZE_X :: 2
+MAP_SIZE_Y :: 2
 MAP_SIZE :: MAP_SIZE_X * MAP_SIZE_Y
 
 SPEED :: 10.0
@@ -206,32 +206,33 @@ main :: proc() {
 		}
 
 		bob.pos = bob.pos + (bob.input_dir * SPEED * dt)
-		bob.pos.x = rl.Clamp(bob.pos.x, 0.0, f32(world.width) - 1.1)
-		bob.pos.y = rl.Clamp(bob.pos.y, 0.0, f32(world.height) - 1.1)
+		bob.pos.x = rl.Clamp(bob.pos.x, 0.0, f32(world.width) - 1.0)
+		bob.pos.y = rl.Clamp(bob.pos.y, 0.0, f32(world.height) - 1.0)
 
 		gx, gy := int(bob.pos.x + 0.5), int(bob.pos.y + 0.5)
 		idx := get_tile_index(&world, gx, gy)
 
 		ground_height := f32(0.0)
-
 		if idx != -1 {
 			ground_height = world.tile_heights[idx]
 		}
 
-		if bob.height > ground_height {
-			bob.velocity_z -= GRAVITY * dt
-			bob.height += bob.velocity_z * dt
-			bob.is_grounded = false
-			if bob.height <= ground_height {
-				bob.height = ground_height
-				bob.velocity_z = 0.0
-				bob.is_grounded = true
-			}
-		} else {
-			bob.height = ground_height
-			bob.velocity_z = 0.0
-			bob.is_grounded = true
-		}
+		bob.height = ground_height
+
+		bob.visual_pos = iso_to_screen_float(bob.pos.x, bob.pos.y)
+
+		// if bob.is_grounded {
+		// 	bob.height = ground_height
+		// 	bob.velocity_z = 0.0
+		// } else {
+		// 	bob.velocity_z -= GRAVITY * dt
+		// 	bob.height += bob.velocity_z * dt
+		// 	if bob.height <= ground_height {
+		// 		bob.height = ground_height
+		// 		bob.velocity_z = 0.0
+		// 		bob.is_grounded = true
+		// 	}
+		// }
 
 		// Input
 		// if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonPressed(.RIGHT)
@@ -373,13 +374,14 @@ main :: proc() {
 			}
 		}
 		//When bob moves lift him?
-
-		bob_sort_y := bob.visual_pos.y + bob.current_height // + 1.0
-		bob_sort_y += 1.0
+		bob_sort_y := bob.visual_pos.y + bob.height // + 1.0
+		//bob_sort_y += 1.0
 		bob_rect := atlas.sprites[TileType.BOB]
 
-		screen_pos := iso_to_screen(int(bob.pos.x), int(bob.pos.y))
-		bob.visual_pos = rl.Vector2{screen_pos.x, screen_pos.y - bob.current_height}
+		//screen_pos := iso_to_screen(int(bob.pos.x), int(bob.pos.y))
+		screen_x := (bob.pos.x - bob.pos.y) * (TILE_SIZE / 2.0)
+		screen_y := (bob.pos.x + bob.pos.y) * (TILE_SIZE / 4.0)
+		bob.visual_pos = rl.Vector2{screen_x, screen_y - bob.height}
 
 		//rl.Rectangle{0, 0, TILE_SIZE, TILE_SIZE}
 		draw_tile(
@@ -389,6 +391,7 @@ main :: proc() {
 			bob_sort_y,
 			rl.WHITE,
 		)
+
 		rl.EndShaderMode()
 
 		//DEBUG LINES

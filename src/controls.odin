@@ -88,7 +88,8 @@ update_controls :: proc(controls: ^Controls, dt: f32, bob: ^Unit) {
 	if rl.IsKeyPressed(.SPACE) {
 		if bob.is_grounded {
 			bob.velocity_z = JUMP_FORCE
-			bob.height += 0.1
+			bob.is_grounded = false
+			bob.height += 0.5
 		}
 	}
 }
