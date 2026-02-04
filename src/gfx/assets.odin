@@ -1,20 +1,15 @@
-package main
+package gfx
 
+import "../world"
 import rl "vendor:raylib"
 
 SPRITE_TILE_WIDTH :: 16
 SPRITE_TILE_HEIGHT :: 16
 
-//File types
-TileType :: enum {
-	WHITE,
-	BOB,
-	COUNT,
-}
 
 Atlas :: struct {
 	texture: rl.Texture,
-	sprites: [TileType.COUNT]rl.Rectangle,
+	sprites: [world.TileType.COUNT]rl.Rectangle,
 }
 
 s :: proc(val: i32, scale: i32) -> i32 {
@@ -81,8 +76,8 @@ init_atlas :: proc() -> Atlas {
 	a := Atlas {
 		texture = tex,
 	}
-	a.sprites[TileType.WHITE] = {0, 0, 64, 64}
-	a.sprites[TileType.BOB] = {64, 0, 64, 64}
+	a.sprites[world.TileType.WHITE] = {0, 0, 64, 64}
+	a.sprites[world.TileType.BOB] = {64, 0, 64, 64}
 
 	return a
 }

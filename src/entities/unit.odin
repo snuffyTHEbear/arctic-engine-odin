@@ -1,5 +1,6 @@
-package main
+package entities
 
+import "../core"
 import rl "vendor:raylib"
 
 Unit :: struct {
@@ -9,9 +10,9 @@ Unit :: struct {
 	velocity_z:     f32,
 	is_grounded:    bool,
 	visual_pos:     rl.Vector2,
-	grid_pos:       Point,
+	grid_pos:       core.Point,
 	current_height: f32,
-	path:           [dynamic]Point,
+	path:           [dynamic]core.Point,
 	move_timer:     f32,
 	input_dir:      rl.Vector2,
 }

@@ -1,4 +1,4 @@
-package main
+package core
 
 import "core:math"
 import rl "vendor:raylib"
@@ -8,6 +8,12 @@ TILE_HEIGHT :: 32
 
 TILE_HALF_W :: TILE_WIDTH / 2
 TILE_HALF_H :: TILE_HEIGHT / 2
+
+Point :: struct {
+	x: int,
+	y: int,
+}
+
 //grid to world
 iso_to_screen :: proc(x, y: int) -> rl.Vector2 {
 	screen_x := f32(x - y) * TILE_HALF_W
