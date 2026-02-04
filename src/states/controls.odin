@@ -18,6 +18,12 @@ WaveType :: enum {
 	BINARY_NOISE,
 }
 
+RunState :: enum {
+	EDITOR,
+	SIMULATION,
+	LEVEL,
+}
+
 ColourPair :: struct {
 	low:  rl.Color,
 	high: rl.Color,
@@ -31,6 +37,7 @@ Controls :: struct {
 	steps:       f32,
 	palette_idx: int,
 	paused:      bool,
+	state:       RunState,
 }
 
 init_controls :: proc() -> Controls {
@@ -42,6 +49,7 @@ init_controls :: proc() -> Controls {
 		steps = 15.0,
 		palette_idx = 0,
 		paused = false,
+		state = .SIMULATION,
 	}
 }
 
@@ -75,6 +83,10 @@ update_controls :: proc(controls: ^Controls, dt: f32) {
 		if rl.IsKeyPressed(.KP_SUBTRACT) {
 			controls.steps -= 1.0
 			if controls.steps == 0.0 do controls.steps = -1.0
+		}
+		if rl.IsKeyPressed(.F2) {
+			//Change state
+			controls.state = RunState((int(controls.state) + 1) % len(RunState))
 		}
 	}
 }

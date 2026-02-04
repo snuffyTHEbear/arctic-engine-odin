@@ -27,14 +27,8 @@ JUMP_FORCE :: 15.0
 SHADER_VS :: "./assets/shaders/iso_depth.vs"
 SHADER_FS :: "./assets/shaders/iso_depth.fs"
 
-RunState :: enum {
-	EDITOR,
-	SIMULATION,
-	LEVEL,
-}
-
 Game :: struct {
-	state:    RunState,
+	state:    states.RunState,
 	isomap:   world.IsoMap,
 	atlas:    gfx.Atlas,
 	controls: states.Controls,
@@ -43,7 +37,7 @@ Game :: struct {
 
 init_game :: proc() -> Game {
 	g := Game {
-		state    = .SIMULATION,
+		state    = states.RunState.SIMULATION,
 		atlas    = gfx.init_atlas(),
 		controls = states.init_controls(),
 		isomap   = world.init_map(MAP_SIZE_X, MAP_SIZE_Y),
@@ -102,6 +96,7 @@ main :: proc() {
 	ui.add_variable(&debugPanel, "Tiles Drawn", int(0))
 	ui.add_variable(&debugPanel, "Hover", core.Point{0, 0})
 	ui.add_variable(&debugPanel, "Right/Middle Click to Pan, Wheel to zoom.", "")
+	ui.add_variable(&debugPanel, "State (F2)", controls.state)
 
 	for !rl.WindowShouldClose() {
 		dt := rl.GetFrameTime()
@@ -126,7 +121,13 @@ main :: proc() {
 		}
 
 		if !controls.paused {
-			states.update_simulation(&iso_world, &controls, time)
+			if controls.state == states.RunState.LEVEL {
+				states.update_flat(&iso_world, &controls, time)
+			} else if controls.state == states.RunState.EDITOR {
+				//
+			} else if controls.state == states.RunState.SIMULATION {
+				states.update_simulation(&iso_world, &controls, time)
+			}
 		}
 		ui.update_variable(&debugPanel, "Hover", core.Point{hover_x, hover_y})
 		ui.update_variable(&debugPanel, "MODE (Tab)", controls.active_type)
@@ -134,6 +135,7 @@ main :: proc() {
 		ui.update_variable(&debugPanel, "Freq (7/9)", controls.frequency)
 		ui.update_variable(&debugPanel, "Amp (Up/Dn)", controls.amplitude)
 		ui.update_variable(&debugPanel, "Steps (-/+)", controls.steps)
+		ui.update_variable(&debugPanel, "State (F2)", controls.state)
 
 		gfx.render_iso_map(&iso_world, &rts_cam, shader, &controls, &game.atlas, &debugPanel)
 

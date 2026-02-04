@@ -129,6 +129,8 @@ render_iso_map :: proc(
 			display_text = fmt.ctprintf("%s: %v", key, value)
 		case core.Point:
 			display_text = fmt.ctprintf("%s: (%d, %d)", key, int(v.x), int(v.y))
+		case states.RunState:
+			display_text = fmt.ctprintf("%s: %v", key, value)
 		}
 		y_pos := i32(start_y + step_y * i)
 		rl.DrawText(display_text, 15, y_pos, 20, rl.GREEN)

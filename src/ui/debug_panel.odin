@@ -13,6 +13,7 @@ VarValue :: union {
 	i32,
 	states.WaveType,
 	core.Point,
+	states.RunState,
 }
 
 DebugPanel :: struct {
