@@ -2,7 +2,6 @@ package ui
 
 import "../core"
 import "../states"
-import "core:fmt"
 import "core:strings"
 
 VarValue :: union {
@@ -23,12 +22,10 @@ DebugPanel :: struct {
 add_variable :: proc(dp: ^DebugPanel, name: string, value: VarValue) {
 	key := strings.clone(name)
 	dp.variables[key] = value
-	fmt.printf("Stored variable '%s'\n", key)
 }
 
 update_variable :: proc(dp: ^DebugPanel, name: string, value: VarValue) {
 	dp.variables[name] = value
-	fmt.printf("Updated variable '%s'\n", name)
 
 }
 

@@ -12,8 +12,30 @@ import "core:math"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-TILE_SIZE :: 64
-TILE_OFFSET :: TILE_SIZE / 2
+// TILE_SIZE :: 64
+// TILE_OFFSET :: TILE_SIZE / 2
+
+init_shader :: proc(
+	sh_fs: cstring,
+	sh_vs: cstring,
+	map_size: f32,
+	controls: ^states.Controls,
+) -> rl.Shader {
+	fmt.println(sh_fs)
+	fmt.println(sh_vs)
+	shader := rl.LoadShader(sh_vs, sh_fs)
+
+	map_height_loc := rl.GetShaderLocation(shader, "mapHeight")
+
+	if map_height_loc == -1 {
+		fmt.println("Failed to get mapHeight uniform location in shader")
+	}
+
+	map_h_val: f32 = map_size * controls.tile_size + 2000.0
+	rl.SetShaderValue(shader, map_height_loc, &map_h_val, .FLOAT)
+
+	return shader
+}
 
 render_iso_map :: proc(
 	isomap: ^world.IsoMap,
@@ -23,6 +45,7 @@ render_iso_map :: proc(
 	atlas: ^gfx.Atlas,
 	debugPanel: ^ui.DebugPanel,
 ) {
+	tile_offset := controls.tile_size / 2
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLANK)
 	rlgl.ClearScreenBuffers()
@@ -36,6 +59,7 @@ render_iso_map :: proc(
 		camera.rl_camera,
 		isomap.width,
 		isomap.height,
+		controls.tile_size,
 	)
 
 	for y := max_y; y >= min_y; y -= 1 {
@@ -58,9 +82,9 @@ render_iso_map :: proc(
 			tile_type := isomap.tile_ids[idx]
 			rect := atlas.sprites[tile_type]
 
-			pos := core.iso_to_screen(x, y)
+			pos := core.iso_to_screen(x, y, controls.tile_size)
 
-			visual_pos := rl.Vector2{pos.x - TILE_OFFSET, pos.y - TILE_OFFSET - h}
+			visual_pos := rl.Vector2{pos.x - tile_offset, pos.y - tile_offset - h}
 
 			s_idx := world.get_tile_index(isomap, x, y + 1)
 			s_h := f32(-10.0)
@@ -104,7 +128,9 @@ render_iso_map :: proc(
 
 	rlgl.DisableDepthTest()
 	rl.EndMode2D()
-	rl.DrawFPS(rl.GetScreenWidth() - 100, 10)
+	if controls.ui_visible {
+		rl.DrawFPS(rl.GetScreenWidth() - 100, 10)
+	}
 	//ADD DEBUG PANEL RENDERING HERE
 	start_y :: 15
 	step_y :: 25
@@ -133,7 +159,9 @@ render_iso_map :: proc(
 			display_text = fmt.ctprintf("%s: %v", key, value)
 		}
 		y_pos := i32(start_y + step_y * i)
-		rl.DrawText(display_text, 15, y_pos, 20, rl.GREEN)
+		if controls.ui_visible {
+			rl.DrawText(display_text, 15, y_pos, 20, rl.GREEN)
+		}
 		i += 1
 	}
 

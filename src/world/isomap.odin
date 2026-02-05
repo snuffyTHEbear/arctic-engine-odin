@@ -3,6 +3,7 @@ package world
 TileType :: enum {
 	WHITE,
 	BOB,
+	BLANK,
 	COUNT,
 }
 

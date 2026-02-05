@@ -5,8 +5,8 @@
             "name": "Launch RenderDoc",
             "type": "lldb",
             "request": "launch",
-            //"program": "/home/rob/dev/renderdoc_1.42/bin/qrenderdoc",
-            "program": "${workspaceFolder}/build/game.bin",
+            "program": "/home/rob/dev/renderdoc_1.42/bin/qrenderdoc",
+            //"program": "${workspaceFolder}/build/game.bin",
             //"args": ["${workspaceFolder}/game.bin"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Odin build"

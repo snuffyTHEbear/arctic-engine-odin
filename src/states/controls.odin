@@ -1,6 +1,8 @@
 package states
 
 import "../gfx/utils"
+import "core:fmt"
+import "core:time"
 import rl "vendor:raylib"
 WaveType :: enum {
 	FLAT,
@@ -22,6 +24,7 @@ RunState :: enum {
 	EDITOR,
 	SIMULATION,
 	LEVEL,
+	MENU,
 }
 
 ColourPair :: struct {
@@ -38,6 +41,8 @@ Controls :: struct {
 	palette_idx: int,
 	paused:      bool,
 	state:       RunState,
+	ui_visible:  bool,
+	tile_size:   f32,
 }
 
 init_controls :: proc() -> Controls {
@@ -49,13 +54,18 @@ init_controls :: proc() -> Controls {
 		steps = 15.0,
 		palette_idx = 0,
 		paused = false,
-		state = .SIMULATION,
+		state = .MENU,
+		ui_visible = false,
+		tile_size = 64,
 	}
 }
 
 update_controls :: proc(controls: ^Controls, dt: f32) {
 	if rl.IsKeyPressed(.TAB) && !controls.paused {
 		controls.active_type = WaveType((int(controls.active_type) + 1) % len(WaveType))
+		if controls.state == .MENU {
+			//states.generate_text_map(&iso_world, "ARCTIC")
+		}
 	}
 
 	if rl.IsKeyPressed(.C) {
@@ -87,6 +97,28 @@ update_controls :: proc(controls: ^Controls, dt: f32) {
 		if rl.IsKeyPressed(.F2) {
 			//Change state
 			controls.state = RunState((int(controls.state) + 1) % len(RunState))
+		}
+		if rl.IsKeyPressed(.F11) {
+			controls.ui_visible = !controls.ui_visible
+		}
+		if rl.IsKeyPressed(.F12) {
+			//Hide debug panel / FPS
+			controls.paused = true
+			now := time.now()
+			dt, _ := time.time_to_datetime(now)
+			timestamp_str := fmt.ctprintf(
+				"%s - %02d:%02d - %02d-%02d-%04d - %s",
+				"arctic-engine",
+				dt.hour,
+				dt.minute,
+				dt.day,
+				int(dt.month),
+				dt.year,
+				".png",
+			)
+
+			rl.TakeScreenshot(timestamp_str)
+			controls.paused = false
 		}
 	}
 }

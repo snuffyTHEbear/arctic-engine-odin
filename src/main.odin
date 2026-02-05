@@ -15,17 +15,12 @@ import "world"
 SCREEN_WIDTH :: 1920
 SCREEN_HEIGHT :: 1080
 TARGET_FPS :: 144
-MAP_SIZE_X :: 25
-MAP_SIZE_Y :: 25
+MAP_SIZE_X :: 40
+MAP_SIZE_Y :: 20
 MAP_SIZE :: MAP_SIZE_X * MAP_SIZE_Y
 
-SPEED :: 10.0
-GRAVITY :: 40.0
-JUMP_FORCE :: 15.0
-
-
-SHADER_VS :: "./assets/shaders/iso_depth.vs"
-SHADER_FS :: "./assets/shaders/iso_depth.fs"
+SHADER_VS :: "../assets/shaders/iso_depth.vs"
+SHADER_FS :: "../assets/shaders/iso_depth.fs"
 
 Game :: struct {
 	state:    states.RunState,
@@ -37,8 +32,8 @@ Game :: struct {
 
 init_game :: proc() -> Game {
 	g := Game {
-		state    = states.RunState.SIMULATION,
-		atlas    = gfx.init_atlas(),
+		state    = states.RunState.MENU,
+		atlas    = gfx.init_atlas(64),
 		controls = states.init_controls(),
 		isomap   = world.init_map(MAP_SIZE_X, MAP_SIZE_Y),
 		camera   = entities.init_camera(SCREEN_WIDTH, SCREEN_HEIGHT),
@@ -63,20 +58,13 @@ main :: proc() {
 
 	rts_cam := game.camera //:= init_camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-	shader := rl.LoadShader(SHADER_VS, SHADER_FS)
-	defer rl.UnloadShader(shader)
-
 	pathfinder := core.init_pathfinder(MAP_SIZE_X, MAP_SIZE_Y)
 	defer core.destroy_pathfinder(&pathfinder)
 
 	controls := game.controls
 
-	map_height_loc := rl.GetShaderLocation(shader, "mapHeight")
-	if map_height_loc == -1 {
-		fmt.println("Failed to get mapHeight uniform location in shader")
-	}
-	map_h_val: f32 = MAP_SIZE * gfx.TILE_SIZE + 2000.0
-	rl.SetShaderValue(shader, map_height_loc, &map_h_val, .FLOAT)
+	shader := gfx.init_shader(SHADER_FS, SHADER_VS, MAP_SIZE, &controls)
+	defer rl.UnloadShader(shader)
 
 	//atlas := game.atlas
 
@@ -85,6 +73,7 @@ main :: proc() {
 
 	debugPanel := ui.init_debug_panel()
 	defer ui.destroy_debug_panel(&debugPanel)
+	states.generate_text_map(&iso_world, "ARCTIC")
 
 	ui.add_variable(&debugPanel, "MODE (Tab)", controls.active_type)
 	ui.add_variable(&debugPanel, "Speed (1/3)", controls.speed)
@@ -97,6 +86,7 @@ main :: proc() {
 	ui.add_variable(&debugPanel, "Hover", core.Point{0, 0})
 	ui.add_variable(&debugPanel, "Right/Middle Click to Pan, Wheel to zoom.", "")
 	ui.add_variable(&debugPanel, "State (F2)", controls.state)
+	ui.add_variable(&debugPanel, "Tile Size (F5/F6)", controls.tile_size)
 
 	for !rl.WindowShouldClose() {
 		dt := rl.GetFrameTime()
@@ -106,19 +96,30 @@ main :: proc() {
 
 		mouse_screen_pos := rl.GetMousePosition()
 		mouse_world := rl.GetScreenToWorld2D(mouse_screen_pos, rts_cam.rl_camera)
-		hover_x, hover_y := core.screen_to_iso(mouse_world)
-
-		if rl.IsKeyPressed(.F5) {
-			core.save_map(&iso_world, "level_data.bin")
-		}
-
+		hover_x, hover_y := core.screen_to_iso(mouse_world, controls.tile_size)
 		if rl.IsKeyPressed(.F6) {
-			world.destroy_map(&iso_world)
-			iso_world = core.load_map("level_data.bin")
-
-			new_pixel_height := f32(iso_world.height * 32) + 2000.0
-			rl.SetShaderValue(shader, map_height_loc, &new_pixel_height, .FLOAT)
+			controls.tile_size += 10.0
+			shader = gfx.init_shader(SHADER_FS, SHADER_VS, MAP_SIZE, &controls)
+			game.atlas = gfx.init_atlas(controls.tile_size)
 		}
+		if rl.IsKeyPressed(.F5) {
+			controls.tile_size -= 10.0
+			if controls.tile_size < 10.0 do controls.tile_size = 10.0
+			shader = gfx.init_shader(SHADER_FS, SHADER_VS, MAP_SIZE, &controls)
+			game.atlas = gfx.init_atlas(controls.tile_size)
+		}
+		// if rl.IsKeyPressed(.F5) {
+		// 	core.save_map(&iso_world, "level_data.bin")
+		// }
+
+		// if rl.IsKeyPressed(.F6) {
+		// 	world.destroy_map(&iso_world)
+		// 	iso_world = core.load_map("level_data.bin")
+		// 	map_height_loc := rl.GetShaderLocation(shader, "mapHeight")
+
+		// 	new_pixel_height := f32(f32(iso_world.height) * controls.tile_size / 2) + 2000.0
+		// 	rl.SetShaderValue(shader, map_height_loc, &new_pixel_height, .FLOAT)
+		// }
 
 		if !controls.paused {
 			if controls.state == states.RunState.LEVEL {
@@ -127,6 +128,10 @@ main :: proc() {
 				//
 			} else if controls.state == states.RunState.SIMULATION {
 				states.update_simulation(&iso_world, &controls, time)
+			} else if controls.state == states.RunState.MENU {
+				states.generate_text_map(&iso_world, "ARCTIC")
+				states.update_menu_simulation(&iso_world, &controls, time)
+
 			}
 		}
 		ui.update_variable(&debugPanel, "Hover", core.Point{hover_x, hover_y})
@@ -136,6 +141,10 @@ main :: proc() {
 		ui.update_variable(&debugPanel, "Amp (Up/Dn)", controls.amplitude)
 		ui.update_variable(&debugPanel, "Steps (-/+)", controls.steps)
 		ui.update_variable(&debugPanel, "State (F2)", controls.state)
+		ui.update_variable(&debugPanel, "Theme (C)", utils.THEMES[controls.palette_idx].name)
+		ui.update_variable(&debugPanel, "Paused (Pause)", controls.paused)
+		ui.update_variable(&debugPanel, "Tile Size (F5/F6)", controls.tile_size)
+
 
 		gfx.render_iso_map(&iso_world, &rts_cam, shader, &controls, &game.atlas, &debugPanel)
 
