@@ -2,7 +2,7 @@ package states
 
 import "../gfx/utils"
 import "../world"
-import "core:fmt"
+//import "core:fmt"
 import "core:math"
 import rl "vendor:raylib"
 
@@ -23,7 +23,7 @@ generate_text_map :: proc(isomap: ^world.IsoMap, text: string) {
 
 		for row in 0 ..< 5 {
 			for col in 0 ..< 4 {
-				fmt.println(grid[row][col])
+				//fmt.println(grid[row][col])
 				if grid[row][col] == 1 {
 					map_x := char_offset_x + col
 					map_y := start_y + row
@@ -62,7 +62,7 @@ update_menu_simulation :: proc(isomap: ^world.IsoMap, controls: ^Controls, time:
 			if isomap.tile_ids[idx] == .WHITE {
 				base_height = 20.0
 			}
-			fmt.println(isomap.tile_ids[idx])
+			//fmt.println(isomap.tile_ids[idx])
 
 			switch controls.active_type {
 			// case .NONE:

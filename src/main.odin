@@ -15,8 +15,8 @@ import "world"
 SCREEN_WIDTH :: 1920
 SCREEN_HEIGHT :: 1080
 TARGET_FPS :: 144
-MAP_SIZE_X :: 40
-MAP_SIZE_Y :: 20
+MAP_SIZE_X :: 50
+MAP_SIZE_Y :: 50
 MAP_SIZE :: MAP_SIZE_X * MAP_SIZE_Y
 
 SHADER_VS :: "../assets/shaders/iso_depth.vs"
@@ -129,8 +129,8 @@ main :: proc() {
 			} else if controls.state == states.RunState.SIMULATION {
 				states.update_simulation(&iso_world, &controls, time)
 			} else if controls.state == states.RunState.MENU {
-				states.generate_text_map(&iso_world, "ARCTIC")
-				states.update_menu_simulation(&iso_world, &controls, time)
+				states.generate_simple_menu(&iso_world)
+				states.update_simple_menu(&iso_world, &controls, time, hover_x, hover_y)
 
 			}
 		}
